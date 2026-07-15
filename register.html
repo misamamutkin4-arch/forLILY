@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Регистрация — LensAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-body">
+  <header class="site-header glass-panel">
+    <a class="logo" href="index.html"><span class="logo-mark">◌</span><span>LensAI</span></a>
+    <nav class="main-nav" aria-label="Главная навигация"><a href="index.html#features">Возможности</a><a href="index.html#compatibility">Устройства</a><a href="index.html#install">Установка</a><a href="index.html#pricing">Тарифы</a></nav>
+    <div class="header-actions"><a class="ghost-link" href="login.html">Войти</a><a class="small-button" href="register.html">Начать</a></div>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card glass-panel reveal">
+      <p class="eyebrow">7 дней бесплатно</p>
+      <h1>Создай аккаунт</h1>
+      <form class="auth-form" id="register-form">
+        <label>Имя<input type="text" id="register-name" name="name" placeholder="Алекс" required /></label>
+        <label>Email<input type="email" id="register-email" name="email" placeholder="you@example.com" required /></label>
+        <label>Пароль<input type="password" id="register-password" name="password" placeholder="Минимум 6 символов" required minlength="6" /></label>
+        <label>Повторить пароль<input type="password" id="register-password-repeat" name="passwordRepeat" placeholder="Повтори пароль" required minlength="6" /></label>
+        <p class="form-message" id="register-message" role="alert"></p>
+        <button class="primary-button full" type="submit">Создать аккаунт и начать пробный период</button>
+      </form>
+      <p class="auth-switch">Уже есть аккаунт? <a href="login.html">Войти</a></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="logo" href="index.html"><span class="logo-mark">◌</span><span>LensAI</span></a>
+    <p>Персональный AI-агент для существующих умных очков. Мы создаём операционную платформу, а не производим железо.</p>
+    <nav aria-label="Навигация в футере"><a href="index.html#features">Возможности</a><a href="login.html">Вход</a><a href="register.html">Регистрация</a></nav>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

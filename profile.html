@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Личный кабинет — LensAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="profile-body">
+  <header class="site-header glass-panel">
+    <a class="logo" href="index.html"><span class="logo-mark">◌</span><span>LensAI</span></a>
+    <nav class="main-nav" aria-label="Главная навигация"><a href="index.html#features">Возможности</a><a href="index.html#compatibility">Устройства</a><a href="index.html#install">Установка</a><a href="index.html#pricing">Тарифы</a></nav>
+    <div class="header-actions"><a class="ghost-link" href="login.html">Войти</a><a class="small-button" href="register.html">Начать</a></div>
+  </header>
+
+  <main class="profile-main section-shell">
+    <section class="profile-hero reveal">
+      <p class="eyebrow">Личный кабинет</p>
+      <h1 id="profile-greeting">Привет! Твой агент готов</h1>
+      <p>Управляй подпиской, лимитами обращений и подключением LensAI к своим очкам.</p>
+    </section>
+
+    <section class="profile-grid">
+      <article class="profile-card glass-panel reveal">
+        <span class="card-icon">⚡</span>
+        <h2>Текущий тариф</h2>
+        <p class="plan-name" id="profile-plan">Про</p>
+        <div class="usage-meter" aria-label="Оставшиеся обращения"><span id="usage-fill"></span></div>
+        <p class="usage-text"><strong id="requests-left">30</strong> обращений осталось на сегодня</p>
+        <div class="profile-actions"><a class="secondary-button" href="index.html#pricing">Сменить тариф</a><button class="danger-button" id="logout-button" type="button">Выйти</button></div>
+      </article>
+
+      <article class="profile-card glass-panel reveal">
+        <span class="card-icon">🕶️</span>
+        <h2>Подключение очков</h2>
+        <p>Bluetooth-синхронизация готова. Открой мобильное приложение LensAI и скажи «Привет, Lens» после установки агента.</p>
+        <ul class="status-list"><li>Камера: ожидает устройство</li><li>Микрофон: ожидает устройство</li><li>Память агента: активна</li></ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="logo" href="index.html"><span class="logo-mark">◌</span><span>LensAI</span></a>
+    <p>Персональный AI-агент для существующих умных очков. Мы создаём операционную платформу, а не производим железо.</p>
+    <nav aria-label="Навигация в футере"><a href="index.html#features">Возможности</a><a href="login.html">Вход</a><a href="register.html">Регистрация</a></nav>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

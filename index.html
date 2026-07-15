@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Автосалоны · сбор данных из 2ГИС</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --ink: #1d1d1f;
+    --ink-soft: #6e6e73;
+    --line: #d2d2d7;
+    --accent: #0071e3;
+    --accent-press: #0058b0;
+    --success: #34c759;
+    --success-bg: #eafaf0;
+    --warn: #ff9f0a;
+    --warn-bg: #fff6e9;
+    --danger: #ff3b30;
+    --radius-lg: 22px;
+    --radius-md: 14px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+    --shadow-md: 0 12px 28px rgba(0,0,0,.09);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 96px 24px 48px;
+    text-align: center;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    margin: 0 0 16px;
+  }
+  .sub {
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 520px;
+    margin: 0 auto 36px;
+  }
+
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 6px 6px 22px;
+    box-shadow: var(--shadow-sm);
+    max-width: 480px;
+    margin: 0 auto;
+    transition: box-shadow .2s ease, border-color .2s ease;
+  }
+  .control:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0,113,227,.12);
+  }
+  .control input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: var(--font);
+    font-size: 16px;
+    background: transparent;
+    color: var(--ink);
+    padding: 10px 0;
+    min-width: 0;
+  }
+  .control input::placeholder { color: #b8b8bd; }
+
+  .btn-primary {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 22px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s ease, transform .1s ease;
+  }
+  .btn-primary:hover { background: var(--accent-press); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: #a9a9ac; cursor: default; }
+
+  @media (max-width: 480px) {
+    .control { flex-direction: column; border-radius: 20px; padding: 14px; }
+    .control input { width: 100%; text-align: center; padding: 8px 0; }
+    .btn-primary { width: 100%; }
+  }
+
+  .status {
+    min-height: 28px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .status.error { color: var(--danger); }
+
+  .dots { display: inline-flex; gap: 4px; }
+  .dots span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.1s infinite ease-in-out;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: .25; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ---------- Results ---------- */
+  .summary-bar {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .summary-bar h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .sync-pill {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .sync-pill.ok { color: #1c7a3d; background: var(--success-bg); }
+  .sync-pill.warn { color: #995700; background: var(--warn-bg); }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid rgba(0,0,0,.04);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise .5s ease forwards;
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+  }
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .card .addr {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 16px 0;
+    opacity: .6;
+  }
+  .row-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
+  .socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .badge:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,.18); }
+  .muted-note { font-size: 13px; color: #b8b8bd; margin: 0 0 14px; }
+
+  .phones { display: flex; flex-direction: column; gap: 8px; }
+  .phone-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    transition: background .15s ease;
+  }
+  .phone-chip:hover { background: var(--success-bg); color: #1c7a3d; }
+  .phone-chip svg { flex-shrink: 0; }
+
+  .empty-state {
+    max-width: 460px;
+    margin: 40px auto 0;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 24px 60px;
+    color: #b8b8bd;
+    font-size: 12.5px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .dots span { animation: none !important; }
+  }
+</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LensAI — персональный AI-агент для умных очков Meta Ray-Ban, Solos, Xreal и других совместимых устройств." />
+  <title>LensAI — AI-агент для умных очков</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="hero">
+    <span class="eyebrow">Внутренний инструмент отдела продаж</span>
+    <h1>Автосалоны города —<br/>сразу с контактами</h1>
+    <p class="sub">Укажите город. Соберём все автосалоны из 2ГИС: название, телефоны и соцсети для связи — и отправим в вашу Google Таблицу.</p>
+
+    <form class="control" id="parse-form">
+      <input id="city" type="text" placeholder="Например, Новосибирск" autocomplete="off" required />
+      <button class="btn-primary" id="start-btn" type="submit">Начать сбор</button>
+    </form>
+
+    <div class="status" id="status"></div>
+  <header class="site-header glass-panel">
+    <a class="logo" href="index.html" aria-label="LensAI на главную">
+      <span class="logo-mark">◌</span>
+      <span>LensAI</span>
+    </a>
+    <nav class="main-nav" aria-label="Главная навигация">
+      <a href="index.html#features">Возможности</a>
+      <a href="index.html#compatibility">Устройства</a>
+      <a href="index.html#install">Установка</a>
+      <a href="index.html#pricing">Тарифы</a>
+    </nav>
+    <div class="header-actions">
+      <a class="ghost-link" href="login.html">Войти</a>
+      <a class="small-button" href="register.html">Начать</a>
+    </div>
+  </header>
+
+  <div class="summary-bar" id="summary-bar" style="display:none">
+    <h2 id="summary-title"></h2>
+    <span class="sync-pill" id="sync-pill"></span>
+  </div>
+
+  <main>
+    <div class="grid" id="results"></div>
+    <div class="empty-state" id="empty-state" style="display:none"></div>
+    <section class="hero section-shell">
+      <div class="hero-content reveal">
+        <p class="eyebrow">Софт для очков, а не очередное железо</p>
+        <h1>Твой личный AI-агент в твоих очках</h1>
+        <p class="hero-subtitle">LensAI — это программная платформа. Установи на любые умные очки и получи персонального агента, который видит мир вместе с тобой, отвечает на вопросы, переводит и помогает в реальном времени.</p>
+        <div class="hero-buttons">
+          <a class="primary-button" href="register.html">Попробовать 7 дней бесплатно</a>
+          <a class="secondary-button js-scroll" href="#compatibility">Совместимые устройства</a>
+        </div>
+      </div>
+      <div class="hero-visual reveal" aria-label="Анимированный AI-интерфейс LensAI">
+        <div class="hologram-card">
+          <div class="glasses-outline">
+            <span class="lens left-lens"></span>
+            <span class="bridge"></span>
+            <span class="lens right-lens"></span>
+          </div>
+          <div class="ai-core">
+            <span class="core-dot"></span>
+            <span class="wave wave-one"></span>
+            <span class="wave wave-two"></span>
+            <span class="wave wave-three"></span>
+          </div>
+          <div class="hud hud-one">Object: menu</div>
+          <div class="hud hud-two">Translate: ready</div>
+          <div class="hud hud-three">Memory: active</div>
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-shell" id="features">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Возможности</p>
+        <h2>Что умеет твой агент</h2>
+        <p>LensAI превращает совместимые очки в персональный интерфейс к миру: видит, слышит, запоминает и помогает именно в моменте.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card glass-panel reveal"><span class="card-icon">👁️</span><h3>Видит твой мир</h3><p>Агент через камеру очков распознаёт объекты, текст, лица, обстановку.</p></article>
+        <article class="feature-card glass-panel reveal"><span class="card-icon">🎙️</span><h3>Слышит и отвечает</h3><p>Живой диалог: спроси что угодно голосом, получи ответ в наушник.</p></article>
+        <article class="feature-card glass-panel reveal"><span class="card-icon">🌍</span><h3>Переводит на лету</h3><p>Увидел вывеску на китайском — агент показал перевод.</p></article>
+        <article class="feature-card glass-panel reveal"><span class="card-icon">🧭</span><h3>Помнит за тебя</h3><p>Где припарковался? Что сказал клиент? Агент помнит контекст.</p></article>
+        <article class="feature-card glass-panel reveal"><span class="card-icon">📊</span><h3>Анализирует и советует</h3><p>Видит график, документ, ценник — сразу даёт анализ.</p></article>
+        <article class="feature-card glass-panel reveal"><span class="card-icon">🔄</span><h3>Работает на твоих очках</h3><p>Установил LensAI — и обычные очки стали умнее.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell compatibility-section" id="compatibility">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Экосистема</p>
+        <h2>Совместимые очки</h2>
+        <p>LensAI работает как ОС. Если у очков есть камера, микрофон и динамик — твой агент готов к работе.</p>
+      </div>
+      <div class="device-row reveal">
+        <span>Meta Ray-Ban</span><span>Solos AirGo</span><span>Xreal Air</span><span>Vuzix Blade</span><span>Everysight Raptor</span><span>Список растёт</span>
+      </div>
+    </section>
+
+    <section class="section-shell" id="install">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Старт за минуты</p>
+        <h2>Как установить</h2>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card glass-panel reveal"><span class="step-number">01</span><h3>Проверь совместимость</h3><p>Скачай приложение LensAI из App Store / Google Play и проверь модель очков.</p><button class="text-button js-store-alert" type="button">Открыть приложение</button></article>
+        <article class="step-card glass-panel reveal"><span class="step-number">02</span><h3>Синхронизируй очки</h3><p>Приложение найдёт твои очки по Bluetooth и установит агента за 2 минуты.</p></article>
+        <article class="step-card glass-panel reveal"><span class="step-number">03</span><h3>Агент готов</h3><p>Скажи «Привет, Lens» — и твой личный AI начинает работать.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell" id="pricing">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Подписка</p>
+        <h2>Тарифы на агента</h2>
+      </div>
+      <div class="pricing-grid">
+        <article class="price-card glass-panel reveal"><h3>База</h3><p class="price">$30<span>/мес</span></p><ul><li>До 15 обращений в день</li><li>Распознавание объектов и текста</li><li>Голосовые ответы</li><li>Базовая память (24 часа)</li></ul><a class="primary-button full" href="register.html">Начать</a></article>
+        <article class="price-card glass-panel popular reveal"><div class="popular-badge">Популярный</div><h3>Про</h3><p class="price">$55<span>/мес</span></p><ul><li>До 30 обращений в день</li><li>Всё из Базы</li><li>Мгновенный перевод</li><li>Навигация</li><li>Расширенная память (30 дней)</li><li>Приоритетная поддержка</li></ul><a class="primary-button full" href="register.html">Начать</a></article>
+        <article class="price-card glass-panel reveal"><h3>Безлимит</h3><p class="price">$100<span>/мес</span></p><ul><li>Неограниченные обращения</li><li>Вообще все функции</li><li>Кастомные сценарии</li><li>Доступ к бета-функциям</li><li>Выделенный сервер</li><li>VIP-поддержка 24/7</li></ul><a class="primary-button full" href="register.html">Начать</a></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>Данные уходят в вашу Google Таблицу через n8n. Источник — открытые карточки организаций 2ГИС.</footer>
+
+<script>
+  // ---------- Настройки (вставлены напрямую, т.к. GitHub Pages не запускает сервер) ----------
+  const DGIS_API_KEY = '65883144-9a7b-4721-bdb6-6fc3d2e88b71';
+  const N8N_WEBHOOK_URL = 'https://frstmo.app.n8n.cloud/webhook/5d52952e-ef4f-46e4-87ab-18623105a707';
+
+  const REGION_SEARCH_URL = 'https://catalog.api.2gis.com/2.0/region/search';
+  const ITEMS_URL = 'https://catalog.api.2gis.com/3.0/items';
+  const SEARCH_QUERIES = ['продажа легковых автомобилей', 'автосалон', 'официальный дилер автомобилей'];
+  const MAX_PAGES_PER_QUERY = 10;
+  const PAGE_SIZE = 50;
+  const REQUEST_DELAY_MS = 250;
+
+  function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+  async function resolveRegion(city) {
+    const url = `${REGION_SEARCH_URL}?q=${encodeURIComponent(city)}&key=${encodeURIComponent(DGIS_API_KEY)}`;
+    const res = await fetch(url);
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) throw new Error(`2ГИС не ответил на поиск города (HTTP ${res.status})`);
+    const items = data?.result?.items || data?.items || [];
+    if (!items.length) throw new Error(`Город «${city}» не найден в 2ГИС. Проверьте написание.`);
+    const match = items[0];
+    return { id: match.id, name: match.name || match.full_name || city };
+  }
+
+  const SOCIAL_PATTERNS = [
+    { type: 'whatsapp', label: 'WhatsApp', re: /wa\.me|whatsapp/i },
+    { type: 'telegram', label: 'Telegram', re: /t\.me|telegram/i },
+    { type: 'instagram', label: 'Instagram', re: /instagram\.com/i },
+    { type: 'vk', label: 'VK', re: /vk\.com|vkontakte/i },
+    { type: 'facebook', label: 'Facebook', re: /facebook\.com|fb\.com/i },
+    { type: 'ok', label: 'Одноклассники', re: /ok\.ru|odnoklassniki/i },
+    { type: 'youtube', label: 'YouTube', re: /youtube\.com|youtu\.be/i },
+  ];
+
+  function classifyContact(contact) {
+    const raw = String(contact.value || contact.text || contact.url || '').trim();
+    const type = String(contact.type || '').toLowerCase();
+    if (!raw) return null;
+    if (type === 'phone') return { kind: 'phone', value: raw };
+    const haystack = `${type} ${raw}`;
+    for (const pattern of SOCIAL_PATTERNS) {
+      if (pattern.re.test(haystack)) {
+        const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, '')}`;
+        return { kind: 'social', type: pattern.type, label: pattern.label, url };
+      }
+    }
+    if (type === 'website' || /^https?:\/\//i.test(raw)) {
+      return { kind: 'social', type: 'website', label: 'Сайт', url: raw };
+    }
+    return { kind: 'other', value: raw };
+  }
+
+  function extractContacts(item) {
+    const phones = [];
+    const socials = [];
+    const groups = item.contact_groups || item.contacts || [];
+    for (const group of groups) {
+      const contacts = group.contacts || group.contact_list || [];
+      for (const contact of contacts) {
+        const parsed = classifyContact(contact);
+        if (!parsed) continue;
+        if (parsed.kind === 'phone') {
+          phones.push(parsed.value);
+        } else if (parsed.kind === 'social') {
+          if (!socials.some((s) => s.type === parsed.type && s.url === parsed.url)) {
+            socials.push({ type: parsed.type, label: parsed.label, url: parsed.url });
+          }
+        }
+      }
+    }
+    return { phones, socials };
+  }
+
+  function normalizeItem(raw, cityName) {
+    const { phones, socials } = extractContacts(raw);
+    return {
+      id: raw.id,
+      name: raw.name || raw.name_ex?.primary || 'Без названия',
+      address: raw.address_name || raw.address?.name || '',
+      city: cityName,
+      phones,
+      socials,
+      dgis_url: raw.id ? `https://2gis.ru/firm/${raw.id}` : null,
+    };
+  }
+
+  async function searchOneQuery(query, cityName) {
+    const collected = [];
+    for (let page = 1; page <= MAX_PAGES_PER_QUERY; page++) {
+      const params = new URLSearchParams({
+        q: `${query} ${cityName}`,
+        type: 'branch',
+        key: DGIS_API_KEY,
+        page: String(page),
+        page_size: String(PAGE_SIZE),
+        fields: 'items.contact_groups,items.address_name,items.point',
+      });
+      const res = await fetch(`${ITEMS_URL}?${params.toString()}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        const code = data?.meta?.error?.message || res.status;
+        throw new Error(`Ошибка запроса к 2ГИС (${code}). Проверьте ключ и лимиты доступа.`);
+      }
+      const items = data?.result?.items || [];
+      collected.push(...items);
+      const total = data?.result?.total ?? items.length;
+      if (items.length === 0 || collected.length >= total) break;
+      await sleep(REQUEST_DELAY_MS);
+    }
+    return collected;
+  }
+
+  async function collectDealers(city) {
+    if (!DGIS_API_KEY) throw new Error('Не задан ключ 2ГИС.');
+    const region = await resolveRegion(city);
+    const seen = new Map();
+    for (const query of SEARCH_QUERIES) {
+      const rawItems = await searchOneQuery(query, region.name);
+      for (const raw of rawItems) {
+        if (!raw.id || seen.has(raw.id)) continue;
+        seen.set(raw.id, normalizeItem(raw, region.name));
+      }
+      await sleep(REQUEST_DELAY_MS);
+    }
+    return { region, items: Array.from(seen.values()) };
+  }
+
+  async function sendToWebhook(payload) {
+    if (!N8N_WEBHOOK_URL) return { sent: false, reason: 'N8N_WEBHOOK_URL не задан — данные показаны только на сайте.' };
+    try {
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return { sent: false, reason: `n8n ответил с ошибкой (HTTP ${res.status}).` };
+      return { sent: true };
+    } catch (err) {
+      return { sent: false, reason: `Не удалось достучаться до вебхука n8n: ${err.message}` };
+    }
+  }
+
+  const SOCIAL_STYLE = {
+    whatsapp: { label: 'WhatsApp', short: 'WA', bg: '#25D366' },
+    telegram: { label: 'Telegram', short: 'TG', bg: '#2AABEE' },
+    instagram:{ label: 'Instagram', short: 'IG', bg: 'linear-gradient(135deg,#f58529,#dd2a7b 60%,#8134af)' },
+    vk:       { label: 'ВКонтакте', short: 'VK', bg: '#4a76a8' },
+    facebook: { label: 'Facebook', short: 'FB', bg: '#1877F2' },
+    ok:       { label: 'Одноклассники', short: 'OK', bg: '#ee8208' },
+    youtube:  { label: 'YouTube', short: 'YT', bg: '#FF0000' },
+    website:  { label: 'Сайт', short: '⌘', bg: '#8e8e93' },
+  };
+
+  const PHONE_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+
+  const form = document.getElementById('parse-form');
+  const cityInput = document.getElementById('city');
+  const startBtn = document.getElementById('start-btn');
+  const statusEl = document.getElementById('status');
+  const resultsEl = document.getElementById('results');
+  const summaryBar = document.getElementById('summary-bar');
+  const summaryTitle = document.getElementById('summary-title');
+  const syncPill = document.getElementById('sync-pill');
+  const emptyState = document.getElementById('empty-state');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const city = cityInput.value.trim();
+    if (!city) return;
+    await runParse(city);
+  });
+
+  async function runParse(city) {
+    setLoading(true, city);
+    resultsEl.innerHTML = '';
+    emptyState.style.display = 'none';
+    summaryBar.style.display = 'none';
+
+    try {
+      const { region, items } = await collectDealers(city);
+
+      const webhookPayload = {
+        city,
+        region_matched: region.name,
+        collected_at: new Date().toISOString(),
+        count: items.length,
+        items,
+      };
+      const webhookResult = await sendToWebhook(webhookPayload);
+
+      renderResults({
+        city,
+        region_matched: region.name,
+        count: items.length,
+        items,
+        webhook: webhookResult,
+      });
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setLoading(isLoading, city) {
+    startBtn.disabled = isLoading;
+    cityInput.disabled = isLoading;
+    if (isLoading) {
+      startBtn.textContent = 'Собираем…';
+      statusEl.className = 'status';
+      statusEl.innerHTML = `Ищу автосалоны в городе «${escapeHtml(city)}»
+        <span class="dots"><span></span><span></span><span></span></span>`;
+    } else {
+      startBtn.textContent = 'Начать сбор';
+    }
+  }
+
+  function showError(message) {
+    statusEl.className = 'status error';
+    statusEl.textContent = message;
+  }
+
+  function renderResults(data) {
+    statusEl.className = 'status';
+    statusEl.textContent = '';
+
+    summaryBar.style.display = 'flex';
+    summaryTitle.textContent = `Найдено: ${data.count} · ${data.region_matched}`;
+
+    if (data.webhook?.sent) {
+      syncPill.className = 'sync-pill ok';
+      syncPill.textContent = '✓ Отправлено в таблицу';
+    } else {
+      syncPill.className = 'sync-pill warn';
+      syncPill.textContent = `⚠ ${data.webhook?.reason || 'Не отправлено в n8n'}`;
+    }
+
+    if (!data.items.length) {
+      emptyState.style.display = 'block';
+      emptyState.textContent = `Автосалонов в «${data.region_matched}» не нашлось. Попробуйте более крупный город рядом.`;
+      return;
+    }
+
+    data.items.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.animationDelay = `${Math.min(i * 40, 400)}ms`;
+
+      const socialsHtml = item.socials.length
+        ? `<div class="socials">${item.socials.map(renderBadge).join('')}</div>`
+        : `<p class="muted-note">Соцсети не найдены</p>`;
+
+      const phonesHtml = item.phones.length
+        ? `<div class="phones">${item.phones.map(renderPhone).join('')}</div>`
+        : `<p class="muted-note">Телефон не найден</p>`;
+
+      card.innerHTML = `
+        <h3>${escapeHtml(item.name)}</h3>
+        <p class="addr">${escapeHtml(item.address || 'Адрес не указан')}</p>
+        <div class="divider"></div>
+        <p class="row-label">Написать</p>
+        ${socialsHtml}
+        <p class="row-label">Позвонить</p>
+        ${phonesHtml}
+      `;
+      resultsEl.appendChild(card);
+    });
+  }
+
+  function renderBadge(social) {
+    const style = SOCIAL_STYLE[social.type] || { label: social.type, short: social.type.slice(0,2).toUpperCase(), bg: '#8e8e93' };
+    return `<a class="badge" style="background:${style.bg}" href="${social.url}" target="_blank" rel="noopener" title="${style.label}">${style.short}</a>`;
+  }
+
+  function renderPhone(phone) {
+    const tel = phone.replace(/[^\d+]/g, '');
+    return `<a class="phone-chip" href="tel:${tel}">${PHONE_ICON}${escapeHtml(phone)}</a>`;
+  }
+  <footer class="site-footer">
+    <a class="logo" href="index.html"><span class="logo-mark">◌</span><span>LensAI</span></a>
+    <p>Персональный AI-агент для существующих умных очков. Мы создаём операционную платформу, а не производим железо.</p>
+    <nav aria-label="Навигация в футере"><a href="index.html#features">Возможности</a><a href="login.html">Вход</a><a href="register.html">Регистрация</a></nav>
+  </footer>
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+  <script src="script.js"></script>
+</body>
+</html>
